@@ -8,8 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Copy, Sparkles, Shuffle, Zap, Wand2 } from 'lucide-react';
+import { Copy, Sparkles, Shuffle, Zap, Wand2, User, LogOut, History } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthPage } from '@/components/AuthPage';
+import { PromptHistory } from '@/components/PromptHistory';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AIPromptGeneratorProps {}
 
@@ -87,6 +91,9 @@ const AI_MODELS = [
 ];
 
 export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
+  const { user, loading, signOut } = useAuth();
+  const [activeTab, setActiveTab] = useState<'generator' | 'history'>('generator');
+  
   const [config, setConfig] = useState<PromptConfig>({
     aiModel: 'midjourney',
     subject: '',
@@ -105,6 +112,19 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
   });
 
   const [generatedPrompt, setGeneratedPrompt] = useState('');
+
+  // Show auth page if not authenticated
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthPage />;
+  }
 
   const generatePrompt = () => {
     let prompt = '';
@@ -202,12 +222,49 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
     }));
   };
 
+  const savePrompt = async () => {
+    if (!generatedPrompt || !user) return;
+
+    try {
+      const { error } = await supabase
+        .from('prompts')
+        .insert({
+          user_id: user.id,
+          platform: config.aiModel,
+          subject: config.subject,
+          subject_details: config.customDetails,
+          style: config.style,
+          artist: config.artist,
+          composition: config.composition,
+          aspect_ratio: config.aspectRatio,
+          mood: config.mood,
+          lighting: config.lighting,
+          camera: config.camera,
+          quality: config.quality,
+          creativity_level: config.creativity,
+          negative_prompt: config.negativePrompt,
+          generated_prompt: generatedPrompt,
+        });
+
+      if (error) throw error;
+
+      toast.success('Prompt salvo no histórico!');
+    } catch (error: any) {
+      toast.error('Erro ao salvar prompt: ' + error.message);
+    }
+  };
+
   const copyPrompt = async () => {
     if (!generatedPrompt) return;
     
     try {
       await navigator.clipboard.writeText(generatedPrompt);
       toast.success('Prompt copiado!');
+      
+      // Auto-save prompt when copying
+      if (user) {
+        setTimeout(() => savePrompt(), 100);
+      }
     } catch (err) {
       toast.error('Erro ao copiar prompt');
     }
@@ -270,262 +327,301 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-3">
             <div className="p-3 rounded-xl bg-gradient-primary">
               <Wand2 className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-ai-purple to-ai-blue bg-clip-text text-transparent">
-              Gerador de Prompts IA
-            </h1>
-          </div>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Crie prompts otimizados para diferentes plataformas de IA de forma intuitiva e profissional
-          </p>
-        </div>
-
-        {/* AI Model Selection */}
-        <Card className="p-6 bg-gradient-card border-border/50 backdrop-blur-sm">
-          <div className="space-y-4">
-            <Label className="text-lg font-semibold">Selecione a Plataforma de IA</Label>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
-              {AI_MODELS.map((model) => (
-                <Button
-                  key={model.id}
-                  variant={config.aiModel === model.id ? "ai" : "outline"}
-                  onClick={() => setConfig(prev => ({ ...prev, aiModel: model.id as AIModel }))}
-                  className="h-16 flex-col gap-1"
-                >
-                  <div className={`w-4 h-4 rounded-full ${model.color}`} />
-                  <span className="text-xs">{model.name}</span>
-                </Button>
-              ))}
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-ai-purple to-ai-blue bg-clip-text text-transparent">
+                Gerador de Prompts IA
+              </h1>
+              <p className="text-muted-foreground">
+                Crie prompts otimizados para diferentes plataformas de IA
+              </p>
             </div>
           </div>
-        </Card>
-
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Configuration Panel */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="p-6 bg-gradient-card border-border/50 backdrop-blur-sm">
-              <Tabs defaultValue="basic" className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <TabsList className="grid w-full max-w-md grid-cols-2">
-                    <TabsTrigger value="basic">Configuração Básica</TabsTrigger>
-                    <TabsTrigger value="advanced">Modo Avançado</TabsTrigger>
-                  </TabsList>
-                  
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={config.isAdvancedMode}
-                      onCheckedChange={(checked) => setConfig(prev => ({ ...prev, isAdvancedMode: checked }))}
-                    />
-                    <Label className="text-sm">Modo Avançado</Label>
-                  </div>
-                </div>
-
-                <TabsContent value="basic" className="space-y-6">
-                  {/* Subject */}
-                  <div className="space-y-3">
-                    <Label className="text-lg font-semibold">Assunto Principal</Label>
-                    <OptionGrid
-                      options={SUBJECTS}
-                      selected={config.subject}
-                      onSelect={(value) => setConfig(prev => ({ ...prev, subject: value }))}
-                      title="Categoria"
-                    />
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Detalhes Customizados</Label>
-                      <Textarea
-                        placeholder="Descreva detalhes específicos do seu assunto..."
-                        value={config.customDetails}
-                        onChange={(e) => setConfig(prev => ({ ...prev, customDetails: e.target.value }))}
-                        className="resize-none"
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Style */}
-                  <OptionGrid
-                    options={STYLES}
-                    selected={config.style}
-                    onSelect={(value) => setConfig(prev => ({ ...prev, style: value }))}
-                    title="Estilo Artístico"
-                  />
-
-                  {/* Composition */}
-                  <OptionGrid
-                    options={COMPOSITIONS}
-                    selected={config.composition}
-                    onSelect={(value) => setConfig(prev => ({ ...prev, composition: value }))}
-                    title="Composição e Enquadramento"
-                  />
-
-                  {/* Mood */}
-                  <OptionGrid
-                    options={MOODS}
-                    selected={config.mood}
-                    onSelect={(value) => setConfig(prev => ({ ...prev, mood: value }))}
-                    title="Humor/Tom"
-                  />
-
-                  {/* Quality */}
-                  <OptionGrid
-                    options={QUALITIES}
-                    selected={config.quality}
-                    onSelect={(value) => setConfig(prev => ({ ...prev, quality: value }))}
-                    title="Qualidade"
-                  />
-                </TabsContent>
-
-                <TabsContent value="advanced" className="space-y-6">
-                  {/* Artists */}
-                  <OptionGrid
-                    options={ARTISTS}
-                    selected={config.artist}
-                    onSelect={(value) => setConfig(prev => ({ ...prev, artist: value }))}
-                    title="Artista de Referência"
-                  />
-
-                  {/* Lighting */}
-                  <OptionGrid
-                    options={LIGHTINGS}
-                    selected={config.lighting}
-                    onSelect={(value) => setConfig(prev => ({ ...prev, lighting: value }))}
-                    title="Iluminação"
-                  />
-
-                  {/* Cameras */}
-                  <OptionGrid
-                    options={CAMERAS}
-                    selected={config.camera}
-                    onSelect={(value) => setConfig(prev => ({ ...prev, camera: value }))}
-                    title="Câmera Profissional"
-                  />
-
-                  {/* Aspect Ratio */}
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium text-muted-foreground">Proporção da Imagem</Label>
-                    <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
-                      {ASPECT_RATIOS.map((ratio) => (
-                        <Button
-                          key={ratio}
-                          variant={config.aspectRatio === ratio ? "gradient" : "outline"}
-                          size="sm"
-                          onClick={() => setConfig(prev => ({ ...prev, aspectRatio: ratio }))}
-                        >
-                          {ratio}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Creativity Slider */}
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-sm font-medium text-muted-foreground">Nível de Criatividade</Label>
-                      <Badge variant="outline">{config.creativity}%</Badge>
-                    </div>
-                    <Slider
-                      value={[config.creativity]}
-                      onValueChange={(values) => setConfig(prev => ({ ...prev, creativity: values[0] }))}
-                      max={100}
-                      step={1}
-                      className="w-full"
-                    />
-                  </div>
-
-                  {/* Negative Prompt */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Prompt Negativo</Label>
-                    <Input
-                      placeholder="Elementos a evitar (ex: blurry, distorted, low quality)"
-                      value={config.negativePrompt}
-                      onChange={(e) => setConfig(prev => ({ ...prev, negativePrompt: e.target.value }))}
-                    />
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </Card>
-          </div>
-
-          {/* Result Panel */}
-          <div className="space-y-6">
-            <Card className="p-6 bg-gradient-card border-border/50 backdrop-blur-sm">
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-ai-purple" />
-                  <Label className="text-lg font-semibold">Prompt Gerado</Label>
-                </div>
-                
-                <div className="space-y-3">
-                  <Textarea
-                    value={generatedPrompt}
-                    readOnly
-                    placeholder="Seu prompt aparecerá aqui..."
-                    className="min-h-32 resize-none bg-background/50 border-border/50"
-                  />
-                  
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={copyPrompt}
-                      variant="gradient"
-                      size="sm"
-                      className="flex-1"
-                      disabled={!generatedPrompt}
-                    >
-                      <Copy className="h-4 w-4" />
-                      Copiar
-                    </Button>
-                    <Button
-                      onClick={randomizeConfig}
-                      variant="ai"
-                      size="sm"
-                    >
-                      <Shuffle className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3">
+          
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-secondary/50 rounded-lg p-1">
               <Button
-                onClick={generatePrompt}
-                variant="glow"
-                className="flex-1"
-              >
-                <Zap className="h-4 w-4" />
-                Gerar Prompt
-              </Button>
-              <Button
-                onClick={clearAll}
-                variant="outline"
+                variant={activeTab === 'generator' ? 'default' : 'ghost'}
                 size="sm"
+                onClick={() => setActiveTab('generator')}
               >
-                Limpar
+                <Wand2 className="h-4 w-4 mr-2" />
+                Gerador
+              </Button>
+              <Button
+                variant={activeTab === 'history' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTab('history')}
+              >
+                <History className="h-4 w-4 mr-2" />
+                Histórico
               </Button>
             </div>
-
-            {/* Platform Info */}
-            <Card className="p-4 bg-gradient-card border-border/50 backdrop-blur-sm">
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Plataforma Selecionada</Label>
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${AI_MODELS.find(m => m.id === config.aiModel)?.color}`} />
-                  <span className="text-sm text-muted-foreground">
-                    {AI_MODELS.find(m => m.id === config.aiModel)?.name}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Prompt otimizado para {AI_MODELS.find(m => m.id === config.aiModel)?.name}
-                </p>
+            
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <User className="h-4 w-4" />
+                <span>{user?.email}</span>
               </div>
-            </Card>
+              <Button variant="outline" size="sm" onClick={signOut}>
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
+
+        {/* Main Content */}
+        {activeTab === 'generator' ? (
+          <>
+            {/* AI Model Selection */}
+            <Card className="p-6 bg-card border-border backdrop-blur-sm">
+              <div className="space-y-4">
+                <Label className="text-lg font-semibold">Selecione a Plataforma de IA</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {AI_MODELS.map((model) => (
+                    <Button
+                      key={model.id}
+                      variant={config.aiModel === model.id ? "ai" : "outline"}
+                      onClick={() => setConfig(prev => ({ ...prev, aiModel: model.id as AIModel }))}
+                      className="h-16 flex-col gap-1"
+                    >
+                      <div className={`w-4 h-4 rounded-full ${model.color}`} />
+                      <span className="text-xs">{model.name}</span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </Card>
+
+            <div className="grid lg:grid-cols-3 gap-6">
+              {/* Configuration Panel */}
+              <div className="lg:col-span-2 space-y-6">
+                <Card className="p-6 bg-card border-border backdrop-blur-sm">
+                  <Tabs defaultValue="basic" className="space-y-6">
+                    <div className="flex justify-between items-center">
+                      <TabsList className="grid w-full max-w-md grid-cols-2">
+                        <TabsTrigger value="basic">Configuração Básica</TabsTrigger>
+                        <TabsTrigger value="advanced">Modo Avançado</TabsTrigger>
+                      </TabsList>
+                      
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={config.isAdvancedMode}
+                          onCheckedChange={(checked) => setConfig(prev => ({ ...prev, isAdvancedMode: checked }))}
+                        />
+                        <Label className="text-sm">Modo Avançado</Label>
+                      </div>
+                    </div>
+
+                    <TabsContent value="basic" className="space-y-6">
+                      {/* Subject */}
+                      <div className="space-y-3">
+                        <Label className="text-lg font-semibold">Assunto Principal</Label>
+                        <OptionGrid
+                          options={SUBJECTS}
+                          selected={config.subject}
+                          onSelect={(value) => setConfig(prev => ({ ...prev, subject: value }))}
+                          title="Categoria"
+                        />
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-muted-foreground">Detalhes Customizados</Label>
+                          <Textarea
+                            placeholder="Descreva detalhes específicos do seu assunto..."
+                            value={config.customDetails}
+                            onChange={(e) => setConfig(prev => ({ ...prev, customDetails: e.target.value }))}
+                            className="resize-none"
+                            rows={3}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Style */}
+                      <OptionGrid
+                        options={STYLES}
+                        selected={config.style}
+                        onSelect={(value) => setConfig(prev => ({ ...prev, style: value }))}
+                        title="Estilo Artístico"
+                      />
+
+                      {/* Composition */}
+                      <OptionGrid
+                        options={COMPOSITIONS}
+                        selected={config.composition}
+                        onSelect={(value) => setConfig(prev => ({ ...prev, composition: value }))}
+                        title="Composição e Enquadramento"
+                      />
+
+                      {/* Mood */}
+                      <OptionGrid
+                        options={MOODS}
+                        selected={config.mood}
+                        onSelect={(value) => setConfig(prev => ({ ...prev, mood: value }))}
+                        title="Humor/Tom"
+                      />
+
+                      {/* Quality */}
+                      <OptionGrid
+                        options={QUALITIES}
+                        selected={config.quality}
+                        onSelect={(value) => setConfig(prev => ({ ...prev, quality: value }))}
+                        title="Qualidade"
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="advanced" className="space-y-6">
+                      {/* Artists */}
+                      <OptionGrid
+                        options={ARTISTS}
+                        selected={config.artist}
+                        onSelect={(value) => setConfig(prev => ({ ...prev, artist: value }))}
+                        title="Artista de Referência"
+                      />
+
+                      {/* Lighting */}
+                      <OptionGrid
+                        options={LIGHTINGS}
+                        selected={config.lighting}
+                        onSelect={(value) => setConfig(prev => ({ ...prev, lighting: value }))}
+                        title="Iluminação"
+                      />
+
+                      {/* Cameras */}
+                      <OptionGrid
+                        options={CAMERAS}
+                        selected={config.camera}
+                        onSelect={(value) => setConfig(prev => ({ ...prev, camera: value }))}
+                        title="Câmera Profissional"
+                      />
+
+                      {/* Aspect Ratio */}
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium text-muted-foreground">Proporção da Imagem</Label>
+                        <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+                          {ASPECT_RATIOS.map((ratio) => (
+                            <Button
+                              key={ratio}
+                              variant={config.aspectRatio === ratio ? "gradient" : "outline"}
+                              size="sm"
+                              onClick={() => setConfig(prev => ({ ...prev, aspectRatio: ratio }))}
+                            >
+                              {ratio}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Creativity Slider */}
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <Label className="text-sm font-medium text-muted-foreground">Nível de Criatividade</Label>
+                          <Badge variant="outline">{config.creativity}%</Badge>
+                        </div>
+                        <Slider
+                          value={[config.creativity]}
+                          onValueChange={(values) => setConfig(prev => ({ ...prev, creativity: values[0] }))}
+                          max={100}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      {/* Negative Prompt */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground">Prompt Negativo</Label>
+                        <Input
+                          placeholder="Elementos a evitar (ex: blurry, distorted, low quality)"
+                          value={config.negativePrompt}
+                          onChange={(e) => setConfig(prev => ({ ...prev, negativePrompt: e.target.value }))}
+                        />
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </Card>
+              </div>
+
+              {/* Result Panel */}
+              <div className="space-y-6">
+                <Card className="p-6 bg-card border-border backdrop-blur-sm">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      <Label className="text-lg font-semibold">Prompt Gerado</Label>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <Textarea
+                        value={generatedPrompt}
+                        readOnly
+                        placeholder="Seu prompt aparecerá aqui..."
+                        className="min-h-32 resize-none"
+                      />
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={copyPrompt}
+                          variant="default"
+                          size="sm"
+                          className="flex-1"
+                          disabled={!generatedPrompt}
+                        >
+                          <Copy className="h-4 w-4" />
+                          Copiar
+                        </Button>
+                        <Button
+                          onClick={randomizeConfig}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Shuffle className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <Button
+                    onClick={generatePrompt}
+                    className="flex-1"
+                  >
+                    <Zap className="h-4 w-4" />
+                    Gerar Prompt
+                  </Button>
+                  <Button
+                    onClick={clearAll}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Limpar
+                  </Button>
+                </div>
+
+                {/* Platform Info */}
+                <Card className="p-4 bg-card border-border backdrop-blur-sm">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">Plataforma Selecionada</Label>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${AI_MODELS.find(m => m.id === config.aiModel)?.color}`} />
+                      <span className="text-sm text-muted-foreground">
+                        {AI_MODELS.find(m => m.id === config.aiModel)?.name}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Prompt otimizado para {AI_MODELS.find(m => m.id === config.aiModel)?.name}
+                    </p>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </>
+        ) : (
+          <PromptHistory />
+        )}
       </div>
     </div>
   );
