@@ -91,7 +91,7 @@ const AI_MODELS = [
 ];
 
 export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
-  // All hooks must be called before any conditional logic
+  // ALL hooks must be called before any conditional logic
   const { user, loading, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<'generator' | 'history'>('generator');
   const [config, setConfig] = useState<PromptConfig>({
@@ -112,7 +112,12 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
   });
   const [generatedPrompt, setGeneratedPrompt] = useState('');
 
-  // Show loading or auth page after all hooks are initialized
+  // Move all hooks to the top before any conditional returns
+  useEffect(() => {
+    generatePrompt();
+  }, [config]);
+
+  // Now we can safely have conditional returns after all hooks are called
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -288,10 +293,6 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
     });
     setGeneratedPrompt('');
   };
-
-  useEffect(() => {
-    generatePrompt();
-  }, [config]);
 
   const OptionGrid = ({ 
     options, 
