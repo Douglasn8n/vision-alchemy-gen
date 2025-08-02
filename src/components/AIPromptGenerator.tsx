@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -112,25 +112,8 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
   });
   const [generatedPrompt, setGeneratedPrompt] = useState('');
 
-  // Move all hooks to the top before any conditional returns
-  useEffect(() => {
-    generatePrompt();
-  }, [config]);
-
-  // Now we can safely have conditional returns after all hooks are called
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <AuthPage />;
-  }
-
-  const generatePrompt = () => {
+  // Define generatePrompt using useCallback to avoid dependency issues
+  const generatePrompt = useCallback(() => {
     let prompt = '';
     
     // Base prompt
@@ -209,7 +192,25 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
     }
     
     setGeneratedPrompt(prompt.trim());
-  };
+  }, [config]);
+
+  // Move useEffect after function definition
+  useEffect(() => {
+    generatePrompt();
+  }, [generatePrompt]);
+
+  // Now we can safely have conditional returns after all hooks are called
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthPage />;
+  }
 
   const randomizeConfig = () => {
     setConfig(prev => ({
