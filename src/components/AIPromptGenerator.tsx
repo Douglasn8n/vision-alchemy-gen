@@ -91,9 +91,9 @@ const AI_MODELS = [
 ];
 
 export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
+  // All hooks must be called before any conditional logic
   const { user, loading, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<'generator' | 'history'>('generator');
-  
   const [config, setConfig] = useState<PromptConfig>({
     aiModel: 'midjourney',
     subject: '',
@@ -110,10 +110,9 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
     negativePrompt: '',
     isAdvancedMode: false,
   });
-
   const [generatedPrompt, setGeneratedPrompt] = useState('');
 
-  // Show auth page if not authenticated
+  // Show loading or auth page after all hooks are initialized
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
