@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthPage } from '@/components/AuthPage';
 import { PromptHistory } from '@/components/PromptHistory';
+import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AIPromptGeneratorProps {}
@@ -111,93 +112,44 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
     isAdvancedMode: false,
   });
   const [generatedPrompt, setGeneratedPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [usageInfo, setUsageInfo] = useState<{
+    current_usage: number;
+    daily_limit: number;
+    remaining: number;
+    can_generate: boolean;
+  } | null>(null);
 
-  // Define generatePrompt using useCallback to avoid dependency issues
-  const generatePrompt = useCallback(() => {
-    let prompt = '';
-    
-    // Base prompt
-    if (config.subject) {
-      prompt += config.subject.toLowerCase();
-    }
-    
-    if (config.customDetails) {
-      prompt += prompt ? `, ${config.customDetails}` : config.customDetails;
-    }
-    
-    // Style and artist
-    if (config.style) {
-      prompt += `, ${config.style.toLowerCase()} style`;
-    }
-    
-    if (config.artist && config.isAdvancedMode) {
-      prompt += `, by ${config.artist}`;
-    }
-    
-    // Mood and composition
-    if (config.mood) {
-      prompt += `, ${config.mood.toLowerCase()} mood`;
-    }
-    
-    if (config.composition) {
-      prompt += `, ${config.composition.toLowerCase()}`;
-    }
-    
-    // Quality and lighting
-    if (config.quality) {
-      prompt += `, ${config.quality.toLowerCase()}`;
-    }
-    
-    if (config.lighting && config.isAdvancedMode) {
-      prompt += `, ${config.lighting.toLowerCase()} lighting`;
-    }
-    
-    if (config.camera && config.isAdvancedMode) {
-      prompt += `, shot with ${config.camera}`;
-    }
-    
-    // AI-specific parameters
-    switch (config.aiModel) {
-      case 'midjourney':
-        if (config.aspectRatio) prompt += ` --ar ${config.aspectRatio}`;
-        prompt += ` --v 6.0 --style raw`;
-        if (config.creativity > 70) prompt += ` --stylize 1000`;
-        if (config.quality) prompt += ` --q 2`;
-        break;
-        
-      case 'leonardo':
-        prompt += ` [Alchemy, High Quality]`;
-        if (config.creativity > 60) prompt += ` [Guidance Scale: ${Math.round(config.creativity / 10)}]`;
-        break;
-        
-      case 'veo3':
-        prompt += ` [Video: 5s duration, smooth motion]`;
-        if (config.creativity > 50) prompt += ` [Creative mode]`;
-        break;
-        
-      case 'chatgpt':
-        prompt = `Create an image of: ${prompt}`;
-        if (config.quality) prompt += `, with ${config.quality.toLowerCase()} quality`;
-        break;
-        
-      case 'gemini':
-        prompt = `Generate: ${prompt}`;
-        if (config.creativity > 60) prompt += `, enhanced creativity mode`;
-        break;
-    }
-    
-    // Negative prompt
-    if (config.negativePrompt && config.isAdvancedMode) {
-      prompt += ` --no ${config.negativePrompt}`;
-    }
-    
-    setGeneratedPrompt(prompt.trim());
-  }, [config]);
+  // Remove automatic prompt generation - only generate on button click
+  // useEffect removed to prevent auto-generation
 
-  // Move useEffect after function definition
+  // Check user's daily usage limit
+  const checkUsageLimit = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      const { data, error } = await supabase.rpc('check_user_limit', {
+        p_user_id: user.id
+      });
+
+      if (error) throw error;
+      setUsageInfo(data as {
+        current_usage: number;
+        daily_limit: number;
+        remaining: number;
+        can_generate: boolean;
+      });
+    } catch (error) {
+      console.error('Error checking usage limit:', error);
+    }
+  }, [user?.id]);
+
+  // Check usage on mount and user change
   useEffect(() => {
-    generatePrompt();
-  }, [generatePrompt]);
+    if (user) {
+      checkUsageLimit();
+    }
+  }, [user, checkUsageLimit]);
 
   // Now we can safely have conditional returns after all hooks are called
   if (loading) {
@@ -211,6 +163,139 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
   if (!user) {
     return <AuthPage />;
   }
+
+  // Define generatePrompt function that will be called manually
+  const generatePrompt = async () => {
+    if (!user?.id) return;
+
+    // Check if user can generate more prompts
+    if (usageInfo && !usageInfo.can_generate) {
+      toast.error(`Limite diário atingido! Você já gerou ${usageInfo.current_usage} prompts hoje. Upgrade seu plano para gerar mais.`);
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      let prompt = '';
+      
+      // Base prompt
+      if (config.subject) {
+        prompt += config.subject.toLowerCase();
+      }
+      
+      if (config.customDetails) {
+        prompt += prompt ? `, ${config.customDetails}` : config.customDetails;
+      }
+      
+      // Style and artist
+      if (config.style) {
+        prompt += `, ${config.style.toLowerCase()} style`;
+      }
+      
+      if (config.artist && config.isAdvancedMode) {
+        prompt += `, by ${config.artist}`;
+      }
+      
+      // Mood and composition
+      if (config.mood) {
+        prompt += `, ${config.mood.toLowerCase()} mood`;
+      }
+      
+      if (config.composition) {
+        prompt += `, ${config.composition.toLowerCase()}`;
+      }
+      
+      // Quality and lighting
+      if (config.quality) {
+        prompt += `, ${config.quality.toLowerCase()}`;
+      }
+      
+      if (config.lighting && config.isAdvancedMode) {
+        prompt += `, ${config.lighting.toLowerCase()} lighting`;
+      }
+      
+      if (config.camera && config.isAdvancedMode) {
+        prompt += `, shot with ${config.camera}`;
+      }
+      
+      // AI-specific parameters
+      switch (config.aiModel) {
+        case 'midjourney':
+          if (config.aspectRatio) prompt += ` --ar ${config.aspectRatio}`;
+          prompt += ` --v 6.0 --style raw`;
+          if (config.creativity > 70) prompt += ` --stylize 1000`;
+          if (config.quality) prompt += ` --q 2`;
+          break;
+          
+        case 'leonardo':
+          prompt += ` [Alchemy, High Quality]`;
+          if (config.creativity > 60) prompt += ` [Guidance Scale: ${Math.round(config.creativity / 10)}]`;
+          break;
+          
+        case 'veo3':
+          prompt += ` [Video: 5s duration, smooth motion]`;
+          if (config.creativity > 50) prompt += ` [Creative mode]`;
+          break;
+          
+        case 'chatgpt':
+          prompt = `Create an image of: ${prompt}`;
+          if (config.quality) prompt += `, with ${config.quality.toLowerCase()} quality`;
+          break;
+          
+        case 'gemini':
+          prompt = `Generate: ${prompt}`;
+          if (config.creativity > 60) prompt += `, enhanced creativity mode`;
+          break;
+      }
+      
+      // Negative prompt
+      if (config.negativePrompt && config.isAdvancedMode) {
+        prompt += ` --no ${config.negativePrompt}`;
+      }
+      
+      setGeneratedPrompt(prompt.trim());
+
+      // Increment usage and save prompt
+      const { data: usage, error: usageError } = await supabase.rpc('increment_user_usage', {
+        p_user_id: user.id
+      });
+
+      if (usageError) throw usageError;
+
+      // Save prompt to history
+      const { error: saveError } = await supabase
+        .from('prompts')
+        .insert({
+          user_id: user.id,
+          platform: config.aiModel,
+          subject: config.subject,
+          subject_details: config.customDetails,
+          style: config.style,
+          artist: config.artist,
+          composition: config.composition,
+          aspect_ratio: config.aspectRatio,
+          mood: config.mood,
+          lighting: config.lighting,
+          camera: config.camera,
+          quality: config.quality,
+          creativity_level: config.creativity,
+          negative_prompt: config.negativePrompt,
+          generated_prompt: prompt.trim(),
+        });
+
+      if (saveError) throw saveError;
+
+      // Update usage info
+      await checkUsageLimit();
+
+      toast.success(`Prompt gerado! Você já usou ${usage} de ${usageInfo?.daily_limit || 10} prompts hoje.`);
+    } catch (error: any) {
+      toast.error('Erro ao gerar prompt: ' + error.message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const randomizeConfig = () => {
     setConfig(prev => ({
@@ -364,6 +449,16 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
             </div>
             
             <div className="flex items-center gap-2">
+              {/* Usage indicator */}
+              {usageInfo && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-secondary/50 rounded-lg text-sm">
+                  <span className="text-muted-foreground">Prompts hoje:</span>
+                  <Badge variant={usageInfo.can_generate ? "secondary" : "destructive"}>
+                    {usageInfo.current_usage}/{usageInfo.daily_limit}
+                  </Badge>
+                </div>
+              )}
+              
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <User className="h-4 w-4" />
                 <span>{user?.email}</span>
@@ -589,9 +684,19 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
                   <Button
                     onClick={generatePrompt}
                     className="flex-1"
+                    disabled={isGenerating || (usageInfo && !usageInfo.can_generate)}
                   >
-                    <Zap className="h-4 w-4" />
-                    Gerar Prompt
+                    {isGenerating ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        Gerando...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-4 w-4 mr-2" />
+                        Gerar Prompt
+                      </>
+                    )}
                   </Button>
                   <Button
                     onClick={clearAll}
@@ -619,6 +724,11 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
                 </Card>
               </div>
             </div>
+
+            {/* Upgrade Prompt when limit reached */}
+            {usageInfo && !usageInfo.can_generate && (
+              <UpgradePrompt usageInfo={usageInfo} />
+            )}
           </>
         ) : (
           <PromptHistory />
