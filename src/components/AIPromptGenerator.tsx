@@ -11,9 +11,11 @@ import { Slider } from '@/components/ui/slider';
 import { Copy, Sparkles, Shuffle, Zap, Wand2, User, LogOut, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
 import { AuthPage } from '@/components/AuthPage';
 import { PromptHistory } from '@/components/PromptHistory';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
+import { SubscriptionStatus } from '@/components/SubscriptionStatus';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AIPromptGeneratorProps {}
@@ -94,6 +96,7 @@ const AI_MODELS = [
 export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
   // ALL hooks must be called before any conditional logic
   const { user, loading, signOut } = useAuth();
+  const { subscriptionInfo } = useSubscription();
   const [activeTab, setActiveTab] = useState<'generator' | 'history'>('generator');
   const [config, setConfig] = useState<PromptConfig>({
     aiModel: 'midjourney',
@@ -118,6 +121,7 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
     daily_limit: number;
     remaining: number;
     can_generate: boolean;
+    subscription_tier?: string;
   } | null>(null);
 
   // Remove automatic prompt generation - only generate on button click
@@ -469,6 +473,9 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
             </div>
           </div>
         </div>
+
+        {/* Subscription Status */}
+        <SubscriptionStatus />
 
         {/* Main Content */}
         {activeTab === 'generator' ? (

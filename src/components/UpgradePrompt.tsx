@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Crown, Zap, Star, Infinity } from 'lucide-react';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface UpgradePromptProps {
   usageInfo: {
@@ -10,10 +11,13 @@ interface UpgradePromptProps {
     daily_limit: number;
     remaining: number;
     can_generate: boolean;
+    subscription_tier?: string;
   };
 }
 
 export const UpgradePrompt: React.FC<UpgradePromptProps> = ({ usageInfo }) => {
+  const { subscriptionInfo, createCheckout, openCustomerPortal } = useSubscription();
+  
   if (usageInfo.can_generate) return null;
 
   return (
@@ -79,7 +83,10 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({ usageInfo }) => {
                   Suporte prioritário
                 </li>
               </ul>
-              <Button className="w-full">
+              <Button 
+                className="w-full"
+                onClick={() => createCheckout('pro')}
+              >
                 Upgrade para Pro
               </Button>
             </div>
@@ -106,7 +113,11 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({ usageInfo }) => {
                   Suporte VIP
                 </li>
               </ul>
-              <Button variant="outline" className="w-full">
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => createCheckout('unlimited')}
+              >
                 Upgrade para Unlimited
               </Button>
             </div>
