@@ -14,13 +14,139 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      prompts: {
+        Row: {
+          artist: string | null
+          aspect_ratio: string | null
+          camera: string | null
+          composition: string
+          created_at: string
+          creativity_level: number | null
+          generated_prompt: string
+          id: string
+          lighting: string | null
+          mood: string | null
+          negative_prompt: string | null
+          platform: string
+          quality: string
+          style: string
+          subject: string
+          subject_details: string | null
+          user_id: string
+        }
+        Insert: {
+          artist?: string | null
+          aspect_ratio?: string | null
+          camera?: string | null
+          composition: string
+          created_at?: string
+          creativity_level?: number | null
+          generated_prompt: string
+          id?: string
+          lighting?: string | null
+          mood?: string | null
+          negative_prompt?: string | null
+          platform: string
+          quality: string
+          style: string
+          subject: string
+          subject_details?: string | null
+          user_id: string
+        }
+        Update: {
+          artist?: string | null
+          aspect_ratio?: string | null
+          camera?: string | null
+          composition?: string
+          created_at?: string
+          creativity_level?: number | null
+          generated_prompt?: string
+          id?: string
+          lighting?: string | null
+          mood?: string | null
+          negative_prompt?: string | null
+          platform?: string
+          quality?: string
+          style?: string
+          subject?: string
+          subject_details?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          stripe_customer_id: string | null
+          subscribed: boolean
+          subscription_end: string | null
+          subscription_tier: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          stripe_customer_id?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          stripe_customer_id?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_limits: {
+        Row: {
+          created_at: string
+          date: string
+          updated_at: string
+          usage_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          updated_at?: string
+          usage_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          updated_at?: string
+          usage_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_user_limit: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
+      increment_user_usage: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
