@@ -10,170 +10,17 @@ export type Database = {
   // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.12 (cd3cf9e)"
+    PostgrestVersion: "13.0.4"
   }
   public: {
     Tables: {
-      profiles: {
-        Row: {
-          created_at: string
-          display_name: string | null
-          id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          display_name?: string | null
-          id?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          display_name?: string | null
-          id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      prompts: {
-        Row: {
-          artist: string | null
-          aspect_ratio: string | null
-          camera: string | null
-          composition: string
-          created_at: string
-          creativity_level: number | null
-          generated_prompt: string
-          id: string
-          lighting: string | null
-          mood: string | null
-          negative_prompt: string | null
-          platform: string
-          quality: string
-          style: string
-          subject: string
-          subject_details: string | null
-          user_id: string
-        }
-        Insert: {
-          artist?: string | null
-          aspect_ratio?: string | null
-          camera?: string | null
-          composition: string
-          created_at?: string
-          creativity_level?: number | null
-          generated_prompt: string
-          id?: string
-          lighting?: string | null
-          mood?: string | null
-          negative_prompt?: string | null
-          platform: string
-          quality: string
-          style: string
-          subject: string
-          subject_details?: string | null
-          user_id: string
-        }
-        Update: {
-          artist?: string | null
-          aspect_ratio?: string | null
-          camera?: string | null
-          composition?: string
-          created_at?: string
-          creativity_level?: number | null
-          generated_prompt?: string
-          id?: string
-          lighting?: string | null
-          mood?: string | null
-          negative_prompt?: string | null
-          platform?: string
-          quality?: string
-          style?: string
-          subject?: string
-          subject_details?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      subscribers: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          stripe_customer_id: string | null
-          subscribed: boolean
-          subscription_end: string | null
-          subscription_tier: string | null
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id?: string
-          stripe_customer_id?: string | null
-          subscribed?: boolean
-          subscription_end?: string | null
-          subscription_tier?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          stripe_customer_id?: string | null
-          subscribed?: boolean
-          subscription_end?: string | null
-          subscription_tier?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      user_usage: {
-        Row: {
-          created_at: string
-          date: string
-          id: string
-          prompts_generated: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          date?: string
-          id?: string
-          prompts_generated?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          date?: string
-          id?: string
-          prompts_generated?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      check_user_limit: {
-        Args: { p_user_id: string }
-        Returns: Json
-      }
-      increment_user_usage: {
-        Args: { p_user_id: string }
-        Returns: number
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
