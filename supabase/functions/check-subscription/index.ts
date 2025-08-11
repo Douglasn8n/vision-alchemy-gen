@@ -24,10 +24,12 @@ serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
     logStep("Stripe key verified");
 
-    // Use service role key to bypass RLS for writes
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("URL") ?? "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SERVICE_ROLE_KEY") ?? "";
+    if (!supabaseUrl || !serviceRoleKey) throw new Error("Supabase URL or Service Role key not configured");
     const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      supabaseUrl,
+      serviceRoleKey,
       { auth: { persistSession: false } }
     );
 

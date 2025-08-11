@@ -24,9 +24,12 @@ serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
     logStep("Stripe key verified");
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("URL") ?? "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("ANON_KEY") ?? "";
+    if (!supabaseUrl || !anonKey) throw new Error("Supabase URL or Anon key not configured");
     const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      supabaseUrl,
+      anonKey
     );
 
     const authHeader = req.headers.get("Authorization");
