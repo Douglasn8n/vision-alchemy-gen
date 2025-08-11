@@ -36,6 +36,11 @@ export const useSubscription = () => {
         subscription_tier: data.subscription_tier,
         subscription_end: data.subscription_end
       });
+
+      toast({
+        title: "Assinatura verificada",
+        description: `Plano: ${data.subscription_tier || 'Free'}`,
+      });
     } catch (error) {
       console.error('Error checking subscription:', error);
       toast({
