@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Copy, Sparkles, Shuffle, Zap, Wand2, User, LogOut, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,6 +18,11 @@ import { PromptHistory } from '@/components/PromptHistory';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { SubscriptionStatus } from '@/components/SubscriptionStatus';
 import { supabase } from '@/integrations/supabase/client';
+import openaiLogo from '@/assets/logos/openai-logo.png';
+import midjourneyLogo from '@/assets/logos/midjourney-logo.png';
+import leonardoLogo from '@/assets/logos/leonardo-logo.png';
+import veo3Logo from '@/assets/logos/veo3-logo.png';
+import geminiLogo from '@/assets/logos/gemini-logo.png';
 
 interface AIPromptGeneratorProps {}
 
@@ -86,11 +92,11 @@ const CAMERAS = [
 ];
 
 const AI_MODELS = [
-  { id: 'midjourney', name: 'Midjourney', color: 'bg-gradient-to-r from-purple-500 to-pink-500' },
-  { id: 'leonardo', name: 'Leonardo.ai', color: 'bg-gradient-to-r from-blue-500 to-cyan-500' },
-  { id: 'veo3', name: 'Veo 3', color: 'bg-gradient-to-r from-green-500 to-teal-500' },
-  { id: 'chatgpt', name: 'ChatGPT (DALL-E 3)', color: 'bg-gradient-to-r from-emerald-500 to-blue-500' },
-  { id: 'gemini', name: 'Gemini (Imagen 3)', color: 'bg-gradient-to-r from-orange-500 to-red-500' }
+  { id: 'midjourney', name: 'Midjourney', color: 'bg-gradient-to-r from-purple-500 to-pink-500', logo: midjourneyLogo },
+  { id: 'leonardo', name: 'Leonardo.ai', color: 'bg-gradient-to-r from-blue-500 to-cyan-500', logo: leonardoLogo },
+  { id: 'veo3', name: 'Veo 3', color: 'bg-gradient-to-r from-green-500 to-teal-500', logo: veo3Logo },
+  { id: 'chatgpt', name: 'ChatGPT (DALL-E 3)', color: 'bg-gradient-to-r from-emerald-500 to-blue-500', logo: openaiLogo },
+  { id: 'gemini', name: 'Gemini (Imagen 3)', color: 'bg-gradient-to-r from-orange-500 to-red-500', logo: geminiLogo }
 ];
 
 export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
@@ -384,32 +390,33 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
     setGeneratedPrompt('');
   };
 
-  const OptionGrid = ({ 
+  const OptionDropdown = ({ 
     options, 
     selected, 
     onSelect, 
-    title 
+    title,
+    placeholder = "Selecione uma opção..."
   }: { 
     options: string[]; 
     selected: string; 
     onSelect: (value: string) => void; 
     title: string;
+    placeholder?: string;
   }) => (
     <div className="space-y-3">
       <Label className="text-sm font-medium text-muted-foreground">{title}</Label>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-        {options.map((option) => (
-          <Button
-            key={option}
-            variant={selected === option ? "gradient" : "outline"}
-            size="sm"
-            onClick={() => onSelect(option)}
-            className="h-auto py-2 px-3 text-xs"
-          >
-            {option}
-          </Button>
-        ))}
-      </div>
+      <Select value={selected} onValueChange={onSelect}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option} value={option}>
+              {option}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 
@@ -484,18 +491,30 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
             <Card className="p-6 bg-card border-border backdrop-blur-sm">
               <div className="space-y-4">
                 <Label className="text-lg font-semibold">Selecione a Plataforma de IA</Label>
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                <div className="flex justify-center gap-4 flex-wrap">
                   {AI_MODELS.map((model) => (
                     <Button
                       key={model.id}
-                      variant={config.aiModel === model.id ? "ai" : "outline"}
+                      variant={config.aiModel === model.id ? "default" : "outline"}
                       onClick={() => setConfig(prev => ({ ...prev, aiModel: model.id as AIModel }))}
-                      className="h-16 flex-col gap-1"
+                      className="h-16 w-16 p-2 rounded-xl relative group hover:scale-105 transition-all duration-200"
+                      title={model.name}
                     >
-                      <div className={`w-4 h-4 rounded-full ${model.color}`} />
-                      <span className="text-xs">{model.name}</span>
+                      <img 
+                        src={model.logo} 
+                        alt={model.name}
+                        className="w-10 h-10 object-contain rounded-lg"
+                      />
+                      {config.aiModel === model.id && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full border-2 border-background" />
+                      )}
                     </Button>
                   ))}
+                </div>
+                <div className="text-center">
+                  <Label className="text-sm text-muted-foreground">
+                    {AI_MODELS.find(m => m.id === config.aiModel)?.name}
+                  </Label>
                 </div>
               </div>
             </Card>
@@ -524,11 +543,12 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
                       {/* Subject */}
                       <div className="space-y-3">
                         <Label className="text-lg font-semibold">Assunto Principal</Label>
-                        <OptionGrid
+                        <OptionDropdown
                           options={SUBJECTS}
                           selected={config.subject}
                           onSelect={(value) => setConfig(prev => ({ ...prev, subject: value }))}
                           title="Categoria"
+                          placeholder="Selecione uma categoria..."
                         />
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-muted-foreground">Detalhes Customizados</Label>
@@ -543,79 +563,78 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
                       </div>
 
                       {/* Style */}
-                      <OptionGrid
+                      <OptionDropdown
                         options={STYLES}
                         selected={config.style}
                         onSelect={(value) => setConfig(prev => ({ ...prev, style: value }))}
                         title="Estilo Artístico"
+                        placeholder="Selecione um estilo..."
                       />
 
                       {/* Composition */}
-                      <OptionGrid
+                      <OptionDropdown
                         options={COMPOSITIONS}
                         selected={config.composition}
                         onSelect={(value) => setConfig(prev => ({ ...prev, composition: value }))}
                         title="Composição e Enquadramento"
+                        placeholder="Selecione uma composição..."
                       />
 
                       {/* Mood */}
-                      <OptionGrid
+                      <OptionDropdown
                         options={MOODS}
                         selected={config.mood}
                         onSelect={(value) => setConfig(prev => ({ ...prev, mood: value }))}
                         title="Humor/Tom"
+                        placeholder="Selecione um humor..."
                       />
 
                       {/* Quality */}
-                      <OptionGrid
+                      <OptionDropdown
                         options={QUALITIES}
                         selected={config.quality}
                         onSelect={(value) => setConfig(prev => ({ ...prev, quality: value }))}
                         title="Qualidade"
+                        placeholder="Selecione a qualidade..."
                       />
                     </TabsContent>
 
                     <TabsContent value="advanced" className="space-y-6">
                       {/* Artists */}
-                      <OptionGrid
+                      <OptionDropdown
                         options={ARTISTS}
                         selected={config.artist}
                         onSelect={(value) => setConfig(prev => ({ ...prev, artist: value }))}
                         title="Artista de Referência"
+                        placeholder="Selecione um artista..."
                       />
 
                       {/* Lighting */}
-                      <OptionGrid
+                      <OptionDropdown
                         options={LIGHTINGS}
                         selected={config.lighting}
                         onSelect={(value) => setConfig(prev => ({ ...prev, lighting: value }))}
                         title="Iluminação"
+                        placeholder="Selecione a iluminação..."
                       />
 
                       {/* Cameras */}
-                      <OptionGrid
+                      <OptionDropdown
                         options={CAMERAS}
                         selected={config.camera}
                         onSelect={(value) => setConfig(prev => ({ ...prev, camera: value }))}
                         title="Câmera Profissional"
+                        placeholder="Selecione uma câmera..."
                       />
 
                       {/* Aspect Ratio */}
-                      <div className="space-y-3">
-                        <Label className="text-sm font-medium text-muted-foreground">Proporção da Imagem</Label>
-                        <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
-                          {ASPECT_RATIOS.map((ratio) => (
-                            <Button
-                              key={ratio}
-                              variant={config.aspectRatio === ratio ? "gradient" : "outline"}
-                              size="sm"
-                              onClick={() => setConfig(prev => ({ ...prev, aspectRatio: ratio }))}
-                            >
-                              {ratio}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
+                      <OptionDropdown
+                        options={ASPECT_RATIOS}
+                        selected={config.aspectRatio}
+                        onSelect={(value) => setConfig(prev => ({ ...prev, aspectRatio: value }))}
+                        title="Proporção da Imagem"
+                        placeholder="Selecione a proporção..."
+                      />
 
                       {/* Creativity Slider */}
                       <div className="space-y-4">
