@@ -18,11 +18,6 @@ import { PromptHistory } from '@/components/PromptHistory';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { SubscriptionStatus } from '@/components/SubscriptionStatus';
 import { supabase } from '@/integrations/supabase/client';
-import openaiLogo from '@/assets/logos/openai-logo.png';
-import midjourneyLogo from '@/assets/logos/midjourney-logo.png';
-import leonardoLogo from '@/assets/logos/leonardo-logo.png';
-import veo3Logo from '@/assets/logos/veo3-logo.png';
-import geminiLogo from '@/assets/logos/gemini-logo.png';
 
 interface AIPromptGeneratorProps {}
 
@@ -92,11 +87,11 @@ const CAMERAS = [
 ];
 
 const AI_MODELS = [
-  { id: 'midjourney', name: 'Midjourney', color: 'bg-gradient-to-r from-purple-500 to-pink-500', logo: midjourneyLogo },
-  { id: 'leonardo', name: 'Leonardo.ai', color: 'bg-gradient-to-r from-blue-500 to-cyan-500', logo: leonardoLogo },
-  { id: 'veo3', name: 'Veo 3', color: 'bg-gradient-to-r from-green-500 to-teal-500', logo: veo3Logo },
-  { id: 'chatgpt', name: 'ChatGPT (DALL-E 3)', color: 'bg-gradient-to-r from-emerald-500 to-blue-500', logo: openaiLogo },
-  { id: 'gemini', name: 'Gemini (Imagen 3)', color: 'bg-gradient-to-r from-orange-500 to-red-500', logo: geminiLogo }
+  { id: 'midjourney', name: 'Midjourney', color: 'bg-gradient-to-r from-purple-500 to-pink-500' },
+  { id: 'leonardo', name: 'Leonardo.ai', color: 'bg-gradient-to-r from-blue-500 to-cyan-500' },
+  { id: 'veo3', name: 'Veo 3', color: 'bg-gradient-to-r from-green-500 to-teal-500' },
+  { id: 'chatgpt', name: 'ChatGPT (DALL-E 3)', color: 'bg-gradient-to-r from-emerald-500 to-blue-500' },
+  { id: 'gemini', name: 'Gemini (Imagen 3)', color: 'bg-gradient-to-r from-orange-500 to-red-500' }
 ];
 
 export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
@@ -129,6 +124,80 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
     can_generate: boolean;
     subscription_tier?: string;
   } | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
+  const isSubscribed = subscriptionInfo?.subscribed || false;
+
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections(prev => ({ ...prev, [sectionId]: !prev[sectionId] }));
+  };
+
+  const OptionContainer = ({ 
+    id,
+    options, 
+    selected, 
+    onSelect, 
+    title,
+    placeholder = "Clique para selecionar",
+    requiresSubscription = false
+  }: { 
+    id: string;
+    options: string[]; 
+    selected: string; 
+    onSelect: (value: string) => void; 
+    title: string;
+    placeholder?: string;
+    requiresSubscription?: boolean;
+  }) => {
+    const isExpanded = expandedSections[id] || false;
+    const isLocked = requiresSubscription && !isSubscribed;
+
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-medium text-muted-foreground">{title}</Label>
+          {requiresSubscription && !isSubscribed && (
+            <Badge variant="secondary" className="text-xs">Pro</Badge>
+          )}
+        </div>
+        <div className="border rounded-lg">
+          <Button
+            variant="ghost"
+            onClick={() => isLocked ? null : toggleSection(id)}
+            className={`w-full justify-between p-4 h-auto ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={isLocked}
+          >
+            <span className="text-left">
+              {selected || placeholder}
+            </span>
+            <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+              ▼
+            </span>
+          </Button>
+          
+          {isExpanded && (
+            <div className="border-t max-h-40 overflow-y-auto">
+              {options.map((option) => (
+                <Button
+                  key={option}
+                  variant="ghost"
+                  onClick={() => {
+                    onSelect(option);
+                    toggleSection(id);
+                  }}
+                  className={`w-full justify-start p-3 rounded-none hover:bg-secondary/50 ${
+                    selected === option ? 'bg-secondary text-primary' : ''
+                  }`}
+                >
+                  {option}
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   // Remove automatic prompt generation - only generate on button click
   // useEffect removed to prevent auto-generation
@@ -497,14 +566,11 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
                       key={model.id}
                       variant={config.aiModel === model.id ? "default" : "outline"}
                       onClick={() => setConfig(prev => ({ ...prev, aiModel: model.id as AIModel }))}
-                      className="h-16 w-16 p-2 rounded-xl relative group hover:scale-105 transition-all duration-200"
+                      className="h-16 w-32 p-3 rounded-xl relative group hover:scale-105 transition-all duration-200 flex flex-col items-center gap-1"
                       title={model.name}
                     >
-                      <img 
-                        src={model.logo} 
-                        alt={model.name}
-                        className="w-10 h-10 object-contain rounded-lg"
-                      />
+                      <div className={`w-6 h-6 rounded ${model.color} opacity-80`} />
+                      <span className="text-xs font-medium">{model.name}</span>
                       {config.aiModel === model.id && (
                         <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full border-2 border-background" />
                       )}
@@ -543,7 +609,8 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
                       {/* Subject */}
                       <div className="space-y-3">
                         <Label className="text-lg font-semibold">Assunto Principal</Label>
-                        <OptionDropdown
+                        <OptionContainer
+                          id="subject"
                           options={SUBJECTS}
                           selected={config.subject}
                           onSelect={(value) => setConfig(prev => ({ ...prev, subject: value }))}
@@ -563,7 +630,8 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
                       </div>
 
                       {/* Style */}
-                      <OptionDropdown
+                      <OptionContainer
+                        id="style"
                         options={STYLES}
                         selected={config.style}
                         onSelect={(value) => setConfig(prev => ({ ...prev, style: value }))}
@@ -572,7 +640,8 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
                       />
 
                       {/* Composition */}
-                      <OptionDropdown
+                      <OptionContainer
+                        id="composition"
                         options={COMPOSITIONS}
                         selected={config.composition}
                         onSelect={(value) => setConfig(prev => ({ ...prev, composition: value }))}
@@ -581,7 +650,8 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
                       />
 
                       {/* Mood */}
-                      <OptionDropdown
+                      <OptionContainer
+                        id="mood"
                         options={MOODS}
                         selected={config.mood}
                         onSelect={(value) => setConfig(prev => ({ ...prev, mood: value }))}
@@ -590,7 +660,8 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
                       />
 
                       {/* Quality */}
-                      <OptionDropdown
+                      <OptionContainer
+                        id="quality"
                         options={QUALITIES}
                         selected={config.quality}
                         onSelect={(value) => setConfig(prev => ({ ...prev, quality: value }))}
@@ -600,35 +671,42 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
                     </TabsContent>
 
                     <TabsContent value="advanced" className="space-y-6">
-                      {/* Artists */}
-                      <OptionDropdown
+                      {/* Artists - Requires Subscription */}
+                      <OptionContainer
+                        id="artist"
                         options={ARTISTS}
                         selected={config.artist}
                         onSelect={(value) => setConfig(prev => ({ ...prev, artist: value }))}
                         title="Artista de Referência"
                         placeholder="Selecione um artista..."
+                        requiresSubscription={true}
                       />
 
-                      {/* Lighting */}
-                      <OptionDropdown
+                      {/* Lighting - Requires Subscription */}
+                      <OptionContainer
+                        id="lighting"
                         options={LIGHTINGS}
                         selected={config.lighting}
                         onSelect={(value) => setConfig(prev => ({ ...prev, lighting: value }))}
                         title="Iluminação"
                         placeholder="Selecione a iluminação..."
+                        requiresSubscription={true}
                       />
 
-                      {/* Cameras */}
-                      <OptionDropdown
+                      {/* Cameras - Requires Subscription */}
+                      <OptionContainer
+                        id="camera"
                         options={CAMERAS}
                         selected={config.camera}
                         onSelect={(value) => setConfig(prev => ({ ...prev, camera: value }))}
                         title="Câmera Profissional"
                         placeholder="Selecione uma câmera..."
+                        requiresSubscription={true}
                       />
 
                       {/* Aspect Ratio */}
-                      <OptionDropdown
+                      <OptionContainer
+                        id="aspectRatio"
                         options={ASPECT_RATIOS}
                         selected={config.aspectRatio}
                         onSelect={(value) => setConfig(prev => ({ ...prev, aspectRatio: value }))}
@@ -636,29 +714,46 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
                         placeholder="Selecione a proporção..."
                       />
 
-                      {/* Creativity Slider */}
+                      {/* Creativity Slider - Requires Subscription */}
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
                           <Label className="text-sm font-medium text-muted-foreground">Nível de Criatividade</Label>
-                          <Badge variant="outline">{config.creativity}%</Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{config.creativity}%</Badge>
+                            {!isSubscribed && <Badge variant="secondary" className="text-xs">Pro</Badge>}
+                          </div>
                         </div>
-                        <Slider
-                          value={[config.creativity]}
-                          onValueChange={(values) => setConfig(prev => ({ ...prev, creativity: values[0] }))}
-                          max={100}
-                          step={1}
-                          className="w-full"
-                        />
+                        <div className={isSubscribed ? '' : 'opacity-50 pointer-events-none'}>
+                          <Slider
+                            value={[config.creativity]}
+                            onValueChange={(values) => setConfig(prev => ({ ...prev, creativity: values[0] }))}
+                            max={100}
+                            step={1}
+                            className="w-full"
+                            disabled={!isSubscribed}
+                          />
+                        </div>
+                        {!isSubscribed && (
+                          <p className="text-xs text-muted-foreground">Upgrade para ajustar a criatividade</p>
+                        )}
                       </div>
 
-                      {/* Negative Prompt */}
+                      {/* Negative Prompt - Requires Subscription */}
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium text-muted-foreground">Prompt Negativo</Label>
+                        <div className="flex justify-between items-center">
+                          <Label className="text-sm font-medium text-muted-foreground">Prompt Negativo</Label>
+                          {!isSubscribed && <Badge variant="secondary" className="text-xs">Pro</Badge>}
+                        </div>
                         <Input
-                          placeholder="Elementos a evitar (ex: blurry, distorted, low quality)"
+                          placeholder={isSubscribed ? "Elementos a evitar (ex: blurry, distorted, low quality)" : "Disponível apenas para assinantes"}
                           value={config.negativePrompt}
                           onChange={(e) => setConfig(prev => ({ ...prev, negativePrompt: e.target.value }))}
+                          disabled={!isSubscribed}
+                          className={isSubscribed ? '' : 'opacity-50'}
                         />
+                        {!isSubscribed && (
+                          <p className="text-xs text-muted-foreground">Upgrade para usar prompts negativos</p>
+                        )}
                       </div>
                     </TabsContent>
                   </Tabs>
