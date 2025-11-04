@@ -6,6 +6,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { z } from 'zod';
+
+// Validation schemas
+const signInSchema = z.object({
+  email: z.string().trim().email('Email inválido').max(255, 'Email muito longo'),
+  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres').max(128, 'Senha muito longa'),
+});
+
+const signUpSchema = z.object({
+  email: z.string().trim().email('Email inválido').max(255, 'Email muito longo'),
+  password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres').max(128, 'Senha muito longa'),
+  displayName: z.string().trim().min(1, 'Nome é obrigatório').max(100, 'Nome muito longo'),
+});
 
 export const AuthPage = () => {
   const [email, setEmail] = useState('');
@@ -18,13 +31,20 @@ export const AuthPage = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
+      // Validate inputs
+      const validatedData = signUpSchema.parse({
+        email: email.trim(),
         password,
+        displayName: displayName.trim(),
+      });
+
+      const { error } = await supabase.auth.signUp({
+        email: validatedData.email,
+        password: validatedData.password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
-            display_name: displayName,
+            display_name: validatedData.displayName,
           },
         },
       });
@@ -33,7 +53,11 @@ export const AuthPage = () => {
 
       toast.success('Conta criada! Verifique seu email para confirmar.');
     } catch (error: any) {
-      toast.error(error.message);
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        toast.error(error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -44,16 +68,26 @@ export const AuthPage = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
+      // Validate inputs
+      const validatedData = signInSchema.parse({
+        email: email.trim(),
         password,
+      });
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: validatedData.email,
+        password: validatedData.password,
       });
 
       if (error) throw error;
 
       window.location.href = '/';
     } catch (error: any) {
-      toast.error(error.message);
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        toast.error(error.message);
+      }
     } finally {
       setLoading(false);
     }
