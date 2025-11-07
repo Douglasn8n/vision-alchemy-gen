@@ -256,6 +256,22 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
     setIsGenerating(true);
 
     try {
+      // Validate user inputs
+      const validationResult = promptInputSchema.safeParse({
+        customDetails: config.customDetails,
+        negativePrompt: config.negativePrompt,
+        artist: config.artist,
+        camera: config.camera,
+        lighting: config.lighting,
+      });
+
+      if (!validationResult.success) {
+        const errorMessage = validationResult.error.errors[0]?.message || "Entrada inválida";
+        toast.error(errorMessage);
+        setIsGenerating(false);
+        return;
+      }
+
       // Validate advanced feature access on server-side
       const usesAdvancedFeatures = config.isAdvancedMode && (
         !!config.artist || 
@@ -369,24 +385,24 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
 
       if (usageError) throw usageError;
 
-      // Save prompt to history
+      // Save prompt to history with validated and sanitized inputs
       const { error: saveError } = await supabase
         .from('prompts')
         .insert({
           user_id: user.id,
           platform: config.aiModel,
           subject: config.subject,
-          subject_details: config.customDetails,
+          subject_details: validationResult.data.customDetails || null,
           style: config.style,
-          artist: config.artist,
+          artist: validationResult.data.artist || null,
           composition: config.composition,
           aspect_ratio: config.aspectRatio,
           mood: config.mood,
-          lighting: config.lighting,
-          camera: config.camera,
+          lighting: validationResult.data.lighting || null,
+          camera: validationResult.data.camera || null,
           quality: config.quality,
           creativity_level: config.creativity,
-          negative_prompt: config.negativePrompt,
+          negative_prompt: validationResult.data.negativePrompt || null,
           generated_prompt: prompt.trim(),
         });
 
