@@ -106,7 +106,7 @@ export const AuthPage = () => {
       const validatedEmail = emailSchema.parse(resetEmail.trim());
 
       const { error } = await supabase.auth.resetPasswordForEmail(validatedEmail, {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) throw error;
