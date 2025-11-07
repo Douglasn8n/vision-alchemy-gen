@@ -18,6 +18,16 @@ import { PromptHistory } from '@/components/PromptHistory';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { SubscriptionStatus } from '@/components/SubscriptionStatus';
 import { supabase } from '@/integrations/supabase/client';
+import { z } from 'zod';
+
+// Validation schema for prompt inputs
+const promptInputSchema = z.object({
+  customDetails: z.string().max(500, { message: "Detalhes devem ter no máximo 500 caracteres" }).optional(),
+  negativePrompt: z.string().max(200, { message: "Prompt negativo deve ter no máximo 200 caracteres" }).optional(),
+  artist: z.string().max(100, { message: "Nome do artista deve ter no máximo 100 caracteres" }).optional(),
+  camera: z.string().max(100, { message: "Câmera deve ter no máximo 100 caracteres" }).optional(),
+  lighting: z.string().max(100, { message: "Iluminação deve ter no máximo 100 caracteres" }).optional(),
+});
 
 interface AIPromptGeneratorProps {}
 
