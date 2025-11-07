@@ -52,6 +52,8 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				'ice-white': 'hsl(var(--ice-white))',
+				'graphite-gray': 'hsl(var(--graphite-gray))',
 				'ai-purple': 'hsl(var(--ai-purple))',
 				'ai-blue': 'hsl(var(--ai-blue))',
 				'ai-cyan': 'hsl(var(--ai-cyan))',
