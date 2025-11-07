@@ -448,23 +448,38 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
     if (!generatedPrompt || !user) return;
 
     try {
+      // Validate inputs before saving
+      const validationResult = promptInputSchema.safeParse({
+        customDetails: config.customDetails,
+        negativePrompt: config.negativePrompt,
+        artist: config.artist,
+        camera: config.camera,
+        lighting: config.lighting,
+      });
+
+      if (!validationResult.success) {
+        const errorMessage = validationResult.error.errors[0]?.message || 'Dados de entrada inválidos';
+        toast.error(errorMessage);
+        return;
+      }
+
       const { error } = await supabase
         .from('prompts')
         .insert({
           user_id: user.id,
           platform: config.aiModel,
           subject: config.subject,
-          subject_details: config.customDetails,
+          subject_details: validationResult.data.customDetails,
           style: config.style,
-          artist: config.artist,
+          artist: validationResult.data.artist,
           composition: config.composition,
           aspect_ratio: config.aspectRatio,
           mood: config.mood,
-          lighting: config.lighting,
-          camera: config.camera,
+          lighting: validationResult.data.lighting,
+          camera: validationResult.data.camera,
           quality: config.quality,
           creativity_level: config.creativity,
-          negative_prompt: config.negativePrompt,
+          negative_prompt: validationResult.data.negativePrompt,
           generated_prompt: generatedPrompt,
         });
 
