@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import promptShootLogo from '@/assets/prompt-shoot-logo.png';
 
 // Validation schemas
 const signInSchema = z.object({
@@ -128,12 +129,15 @@ export const AuthPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background/80 to-accent/10 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            AI Prompt Generator
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center">
+            <img src={promptShootLogo} alt="Prompt Shoot" className="h-16 w-auto" />
+          </div>
+          <CardTitle className="text-xl font-semibold text-foreground">
+            Gere os melhores prompts de imagem e texto para IA
           </CardTitle>
           <CardDescription>
-            Entre ou crie sua conta para acessar o histórico de prompts
+            Entre ou crie a sua conta para acessar seu histórico de prompts
           </CardDescription>
         </CardHeader>
         <CardContent>
