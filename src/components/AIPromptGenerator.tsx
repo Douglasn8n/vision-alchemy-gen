@@ -96,7 +96,7 @@ const AI_MODELS = [
 
 export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
   // ALL hooks must be called before any conditional logic
-  const { user, loading, signOut } = useAuth();
+  const { user, session, loading, signOut } = useAuth();
   const { subscriptionInfo } = useSubscription();
   const [activeTab, setActiveTab] = useState<'generator' | 'history'>('generator');
   const [config, setConfig] = useState<PromptConfig>({
@@ -256,6 +256,33 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
     setIsGenerating(true);
 
     try {
+      // Validate advanced feature access on server-side
+      const usesAdvancedFeatures = config.isAdvancedMode && (
+        !!config.artist || 
+        !!config.lighting || 
+        !!config.camera || 
+        !!config.negativePrompt
+      );
+
+      if (usesAdvancedFeatures) {
+        const { data: validationData, error: validationError } = await supabase.functions.invoke(
+          'validate-advanced-features',
+          {
+            body: { usesAdvancedFeatures: true },
+            headers: {
+              Authorization: `Bearer ${session?.access_token}`,
+            },
+          }
+        );
+
+        if (validationError || !validationData?.allowed) {
+          toast.error(
+            validationData?.error || 'Recursos avançados requerem assinatura Pro ou Unlimited'
+          );
+          setIsGenerating(false);
+          return;
+        }
+      }
       let prompt = '';
       
       // Base prompt
