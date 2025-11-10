@@ -17,7 +17,6 @@ import { AuthPage } from '@/components/AuthPage';
 import { PromptHistory } from '@/components/PromptHistory';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { SubscriptionStatus } from '@/components/SubscriptionStatus';
-import { RLSSecurityTest } from '@/components/RLSSecurityTest';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 
@@ -621,9 +620,6 @@ export const AIPromptGenerator: React.FC<AIPromptGeneratorProps> = () => {
 
         {/* Subscription Status */}
         <SubscriptionStatus />
-
-        {/* Security Test - Only for authenticated users */}
-        {user && <RLSSecurityTest />}
 
         {/* Main Content */}
         {activeTab === 'generator' ? (
