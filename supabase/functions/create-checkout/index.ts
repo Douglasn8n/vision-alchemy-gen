@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,13 +42,23 @@ serve(async (req) => {
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    logStep("User authenticated");
 
-    // Get plan from request body
-    const { plan } = await req.json();
-    if (!plan || !['pro', 'unlimited'].includes(plan)) {
-      throw new Error("Invalid plan specified");
+    // Validate request body with Zod
+    const requestSchema = z.object({
+      plan: z.enum(['pro', 'unlimited'], {
+        errorMap: () => ({ message: "Plan must be either 'pro' or 'unlimited'" })
+      })
+    });
+    
+    const body = await req.json();
+    const validation = requestSchema.safeParse(body);
+    
+    if (!validation.success) {
+      throw new Error(`Invalid request body: ${validation.error.errors[0].message}`);
     }
+    
+    const { plan } = validation.data;
     logStep("Plan validated", { plan });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
