@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { toast } from 'sonner';
 import { z } from 'zod';
 import promptShootLogo from '@/assets/prompt-shoot-logo.png';
+import { useRecaptcha } from '@/hooks/useRecaptcha';
 
 // Validation schemas
 const signInSchema = z.object({
@@ -30,6 +31,7 @@ export const AuthPage = () => {
   const [resetEmail, setResetEmail] = useState('');
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+  const { isReady, executeRecaptcha } = useRecaptcha();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,11 +45,18 @@ export const AuthPage = () => {
         displayName: displayName.trim(),
       });
 
+      // Generate reCAPTCHA token
+      const captchaToken = await executeRecaptcha('signup');
+      if (!captchaToken) {
+        throw new Error('Erro ao validar reCAPTCHA. Tente novamente.');
+      }
+
       const { error } = await supabase.auth.signUp({
         email: validatedData.email,
         password: validatedData.password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
+          captchaToken,
           data: {
             display_name: validatedData.displayName,
           },
@@ -79,9 +88,18 @@ export const AuthPage = () => {
         password,
       });
 
+      // Generate reCAPTCHA token
+      const captchaToken = await executeRecaptcha('signin');
+      if (!captchaToken) {
+        throw new Error('Erro ao validar reCAPTCHA. Tente novamente.');
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
         email: validatedData.email,
         password: validatedData.password,
+        options: {
+          captchaToken,
+        },
       });
 
       if (error) throw error;
